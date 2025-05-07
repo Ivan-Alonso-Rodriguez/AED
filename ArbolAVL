@@ -188,11 +188,17 @@ private:
         return 1 + max(computeHeight(node->left), computeHeight(node->right));
     }
 
+
     TreeNode* findNode(TreeNode* node, int key) {
         if (!node) return nullptr;
-        if (key == node->key) return node;
-        if (key < node->key) return findNode(node->left, key);
-        return findNode(node->right, key);
+        if (key == node->key) return node; // Si encuentra la llave devuelve el nodo
+        if (key < node->key) return findNode(node->left, key); // Si la clave es menor, busca a la izquierda
+        return findNode(node->right, key); // Si la clave es mayo, busca a la derecha
+    }
+    // Para obtener el size
+    int countNodes(TreeNode* node) {
+        if (!node) return 0;
+        return node->count + countNodes(node->left) + countNodes(node->right);
     }
 
 public:
@@ -225,6 +231,53 @@ public:
         }
         return computeHeight(node);
     }
+
+    // Verifica si el arbol es AVL (factor de balance entre -1 y 1)
+    bool isAVL() {
+        return isAVL(root).first;
+    }
+
+    pair<bool, int> isAVL(TreeNode* node) {
+        if (!node) return {true, 0};
+        auto left = isAVL(node->left);
+        auto right = isAVL(node->right);
+        bool balanced = left.first && right.first && abs(left.second - right.second) <= 1;
+        return {balanced, 1 + max(left.second, right.second)};
+    }
+
+    // Devuelve la clave minima del arbol
+    int getMin() {
+        if (!root) {
+            cout << "El arbol esta vacio.\n";
+            return -1;
+        }
+        TreeNode* temp = root;
+        while (temp->left) temp = temp->left;
+        return temp->key;
+    }
+
+    // Devuelve la clave maxima del arbol
+    int getMax() {
+        if (!root) {
+            cout << "El arbol esta vacio.\n";
+            return -1;
+        }
+        TreeNode* temp = root;
+        while (temp->right) temp = temp->right;
+        return temp->key;
+    }
+
+    // Devuelve la cantidad total de claves (sumando count)
+    int size() {
+        return countNodes(root);
+    }
+
+    // USO EN MAIN()
+    // cout << "El arbol es AVL? " << (tree.isAVL() ? "Si" : "No") << endl;
+    // cout << "Minimo: " << tree.getMin() << endl;
+    // cout << "Maximo: " << tree.getMax() << endl;
+    // cout << "Cantidad total de claves (count): " << tree.size() << endl;
+
 };
 
 // Genera una secuencia de insercion balanceada sin rotaciones
@@ -242,6 +295,7 @@ vector<int> generateAVLInsertionSequence(vector<int> array) {
     buildPerfectAVL(array, 0, array.size() - 1, res);
     return res;
 }
+
 
 
 // Funcion principal
