@@ -1,0 +1,249 @@
+#include <iostream>
+using namespace std;
+
+// Nodo del arbol AVL
+struct TreeNode {
+    int key;
+    int bal; // factor de balance: -1, 0, +1
+    TreeNode* left;
+    TreeNode* right;
+    TreeNode(int k) : key(k), bal(0), left(nullptr), right(nullptr) {}
+};
+
+// Clase del arbol AVL
+class AVLTree {
+private:
+    TreeNode* root;
+
+    // Rotaciones
+    void rotateLeft(TreeNode*& node) {
+        TreeNode* r = node->right;
+        node->right = r->left;
+        r->left = node;
+        node->bal = 0;
+        r->bal = 0;
+        node = r;
+    }
+
+    void rotateRight(TreeNode*& node) {
+        TreeNode* l = node->left;
+        node->left = l->right;
+        l->right = node;
+        node->bal = 0;
+        l->bal = 0;
+        node = l;
+    }
+
+    void rotateLeftRight(TreeNode*& node) {
+        TreeNode* l = node->left;
+        TreeNode* lr = l->right;
+        l->right = lr->left;
+        lr->left = l;
+        node->left = lr->right;
+        lr->right = node;
+
+        if (lr->bal == +1) node->bal = -1;
+        else node->bal = 0;
+        if (lr->bal == -1) l->bal = +1;
+        else l->bal = 0;
+
+        lr->bal = 0;
+        node = lr;
+    }
+
+    void rotateRightLeft(TreeNode*& node) {
+        TreeNode* r = node->right;
+        TreeNode* rl = r->left;
+        r->left = rl->right;
+        rl->right = r;
+        node->right = rl->left;
+        rl->left = node;
+
+        if (rl->bal == -1) node->bal = +1;
+        else node->bal = 0;
+        if (rl->bal == +1) r->bal = -1;
+        else r->bal = 0;
+
+        rl->bal = 0;
+        node = rl;
+    }
+
+    // Insercion con rebalanceo
+    void insert(int key, TreeNode*& node, bool& h) {
+        if (!node) {
+            node = new TreeNode(key);
+            h = true;
+        } else if (key < node->key) {
+            insert(key, node->left, h);
+            if (h) {
+                switch (node->bal) {
+                    case -1: node->bal = 0; h = false; break;
+                    case  0: node->bal = +1; break;
+                    case +1:
+                        if (node->left->bal == +1)
+                            rotateRight(node);
+                        else
+                            rotateLeftRight(node);
+                        h = false;
+                }
+            }
+        } else if (key > node->key) {
+            insert(key, node->right, h);
+            if (h) {
+                switch (node->bal) {
+                    case +1: node->bal = 0; h = false; break;
+                    case  0: node->bal = -1; break;
+                    case -1:
+                        if (node->right->bal == -1)
+                            rotateLeft(node);
+                        else
+                            rotateRightLeft(node);
+                        h = false;
+                }
+            }
+        }
+    }
+
+    // Encuentra y elimina el menor del subarbol derecho
+    void deleteMin(TreeNode*& q, TreeNode*& r, bool& h) {
+        if (r->left) {
+            deleteMin(q, r->left, h);
+            if (h) balanceLeft(r, h);
+        } else {
+            q->key = r->key;
+            TreeNode* temp = r;
+            r = r->right;
+            delete temp;
+            h = true;
+        }
+    }
+
+    // Rebalanceo luego de eliminar en subarbol izquierdo
+    void balanceLeft(TreeNode*& node, bool& h) {
+        switch (node->bal) {
+            case +1:
+                node->bal = 0;
+                break;
+            case 0:
+                node->bal = -1;
+                h = false;
+                break;
+            case -1: {
+                TreeNode* r = node->right;
+                if (r->bal <= 0) {
+                    rotateLeft(node);
+                    if (r->bal == 0) {
+                        node->bal = +1;
+                        r->bal = -1;
+                        h = false;
+                    }
+                } else {
+                    rotateRightLeft(node);
+                }
+                break;
+            }
+        }
+    }
+
+    // Rebalanceo luego de eliminar en subarbol derecho
+    void balanceRight(TreeNode*& node, bool& h) {
+        switch (node->bal) {
+            case -1:
+                node->bal = 0;
+                break;
+            case 0:
+                node->bal = +1;
+                h = false;
+                break;
+            case +1: {
+                TreeNode* l = node->left;
+                if (l->bal >= 0) {
+                    rotateRight(node);
+                    if (l->bal == 0) {
+                        node->bal = -1;
+                        l->bal = +1;
+                        h = false;
+                    }
+                } else {
+                    rotateLeftRight(node);
+                }
+                break;
+            }
+        }
+    }
+
+    // Eliminacion recursiva
+    void remove(int key, TreeNode*& node, bool& h) {
+        if (!node) return;
+
+        if (key < node->key) {
+            remove(key, node->left, h);
+            if (h) balanceLeft(node, h);
+        } else if (key > node->key) {
+            remove(key, node->right, h);
+            if (h) balanceRight(node, h);
+        } else {
+            TreeNode* q = node;
+            if (!q->right) {
+                node = q->left;
+                delete q;
+                h = true;
+            } else if (!q->left) {
+                node = q->right;
+                delete q;
+                h = true;
+            } else {
+                deleteMin(q, q->right, h);
+                if (h) balanceRight(node, h);
+            }
+        }
+    }
+
+    // Recorrido inorden
+    void inorder(TreeNode* node) {
+        if (node) {
+            inorder(node->left);
+            cout << "Clave: " << node->key << " | Balance: " << node->bal << endl;
+            inorder(node->right);
+        }
+    }
+
+public:
+    AVLTree() : root(nullptr) {}
+
+    void insert(int key) {
+        bool h = false;
+        insert(key, root, h);
+    }
+
+    void remove(int key) {
+        bool h = false;
+        remove(key, root, h);
+    }
+
+    void printInorder() {
+        cout << "Recorrido inorden del arbol AVL:\n";
+        inorder(root);
+    }
+};
+
+// Funcion principal
+int main() {
+    AVLTree tree;
+
+    int inserciones[] = {35, 30, 27, 11, 16, 100, 50, 91, 73, 5};
+    for (int x : inserciones)
+        tree.insert(x);
+
+    cout << "Antes de eliminar:\n";
+    tree.printInorder();
+
+    int eliminaciones[] = {30, 35, 100};
+    for (int x : eliminaciones)
+        tree.remove(x);
+
+    cout << "\nDespues de eliminar:\n";
+    tree.printInorder();
+
+    return 0;
+}
